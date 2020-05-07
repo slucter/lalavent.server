@@ -1,0 +1,42 @@
+{
+  "name": "lalavent-server",
+  "version": "1.0.0",
+  "description": "Backend for lalavent app",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "nodemon server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/algol007/lalavent.client.git"
+  },
+  "keywords": [
+    "NodeJS",
+    "RestfulAPI"
+  ],
+  "author": "Lalavent",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/algol007/lalavent.client/issues"
+  },
+  "homepage": "https://github.com/algol007/lalavent.client#readme",
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "body-parser": "^1.19.0",
+    "cors": "^2.8.5",
+    "dotenv": "^8.2.0",
+    "express": "^4.17.1",
+    "jsonwebtoken": "^8.5.1",
+    "morgan": "^1.10.0",
+    "multer": "^1.4.2",
+    "mysql2": "^2.1.0",
+    "nodemailer": "^6.4.6",
+    "redis": "^3.0.2",
+    "sequelize": "^5.21.7"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.3",
+    "sequelize-cli": "^5.5.1"
+  }
+}
