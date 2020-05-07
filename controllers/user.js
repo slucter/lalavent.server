@@ -208,7 +208,6 @@ exports.getUserByRoleId = async (req, res, next) => {
   }
 };
 
-
 exports.userActivation = (req, res, next) => {
   const header = req.query.token;
   const userId = req.params.userId;

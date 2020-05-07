@@ -34,16 +34,16 @@ exports.addEvent = (req, res, next) => {
 exports.getAllEvents = (req, res, next) => {
   const orderByTime = req.query.time;
   const search = req.query.search;
-  const limit = 1;
-  const page = req.query.page;
+  const limit = 10;
+  const page = req.query.page || 1;
   const offset = (page - 1) * limit;
 
   if (search) {
     Events.findAndCountAll({
       where: {
         [Op.or]: [
-          { title: { [Op.like]: search } },
-          { description: { [Op.like]: search } }
+          { title: { [Op.substring]: search } },
+          { description: { [Op.substring]: search } }
         ]
       },
       exclude: ["createdAt", "updatedAt"],
@@ -51,25 +51,44 @@ exports.getAllEvents = (req, res, next) => {
         { model: Users, as: "user", attributes: ["name", "email", "address"] },
         { model: Categories, as: "category", attributes: ["name"] }
       ],
-      // limit: limit,
-      // offset: offset
     })
       .then(data => {
-        // const pages = Math.ceil(data.count / limit);
-        // if (page > pages) {
-        //   next();
-        // } else {
-          res.status(200).send({
-            page: `${page} of ${pages}`,
-            message: "Search Events",
-            events: data
-          });
-        // }
+        res.status(200).send({
+          search: search,
+          message: "Search Events",
+          events: data
+        });
       })
       .catch(() => {
         throw new ErrorHandler(500, 'Internal server error');
       });
-  } else if (page) {
+  } else if (orderByTime) {
+    Events.findAndCountAll({
+      order: [["date", orderByTime]],
+      // exclude: ["createdAt", "updatedAt"],
+      include: [
+        { model: Users, as: "user", attributes: ["name", "email", "address"] },
+        { model: Categories, as: "category", attributes: ["name"] }
+      ],
+      limit: limit,
+      offset: offset
+    })
+      .then(data => {
+        const pages = Math.ceil(data.count / limit);
+        if (page > pages) {
+          next();
+        } else {
+          res.status(200).send({
+            page: `${page} of ${pages}`,
+            message: "Order Event By Date",
+            events: data
+          });
+        }
+      })
+      .catch(() => {
+        throw new ErrorHandler(500, 'Internal server error');
+      });
+  } else {
     Events.findAndCountAll({
       exclude: ["createdAt", "updatedAt"],
       include: [
@@ -90,48 +109,6 @@ exports.getAllEvents = (req, res, next) => {
             events: data
           });
         }
-      })
-      .catch(() => {
-        throw new ErrorHandler(500, 'Internal server error');
-      });
-  } else if (orderByTime) {
-    Events.findAndCountAll({
-      order: [["createdAt", orderByTime]],
-      // exclude: ["createdAt", "updatedAt"],
-      include: [
-        { model: Users, as: "user", attributes: ["name", "email", "address"] },
-        { model: Categories, as: "category", attributes: ["name"] }
-      ],
-      // limit: limit,
-      // offset: offset
-    })
-      .then(data => {
-        // const pages = Math.ceil(data.count / limit);
-        // if (page > pages) {
-        //   next();
-        // } else {
-          res.status(200).send({
-            page: `${page} of ${pages}`,
-            message: "Order Event By Date",
-            events: data
-          });
-        // }
-      })
-      .catch(() => {
-        throw new ErrorHandler(500, 'Internal server error');
-      });
-  } else {
-    Events.findAndCountAll({
-      exclude: ["createdAt", "updatedAt"],
-      include: [
-        { model: Users, as: "user", attributes: ["name", "email", "address"] },
-        { model: Categories, as: "category", attributes: ["name"] }
-      ]
-    })
-      .then(data => {
-        res.status(200).send({
-          events: data
-        });
       })
       .catch(() => {
         throw new ErrorHandler(500, 'Internal server error');
