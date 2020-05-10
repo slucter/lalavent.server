@@ -8,6 +8,8 @@ module.exports = function(app) {
   app.post('/api/lalavent/auth/signin', controller.signIn);
   app.get('/api/lalavent/user', controller.getAllUsers);
   app.get('/api/lalavent/user/check', controller.checkUsers);
+  app.patch('/api/lalavent/user/activation', controller.userActivation);
+  app.patch('/api/lalavent/user/approve/:userId', controller.approveUser);
   app.get('/api/lalavent/user/:userId', controller.getUserById);
   app.get('/api/lalavent/user/role/:roleId', controller.getUserByRoleId);
   app.put('/api/lalavent/user/:userId', auth.authorized, upload.uploadImage.single('image'), controller.updateUser);

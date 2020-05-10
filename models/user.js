@@ -8,13 +8,18 @@ module.exports = (sequelize, DataTypes) => {
     role_id: DataTypes.INTEGER,
     address: DataTypes.STRING,
     description: DataTypes.TEXT,
-    status: DataTypes.BOOLEAN
+    status: DataTypes.INTEGER
   }, {});
   user.associate = function(models) {
     // associations can be defined here
     user.belongsTo(models.role, {
       foreignKey: 'role_id',
       as: 'role',
+      sourceKey: 'id'
+    });
+    user.hasMany(models.event, {
+      foreignKey: 'id',
+      as: 'event',
       sourceKey: 'id'
     });
   };

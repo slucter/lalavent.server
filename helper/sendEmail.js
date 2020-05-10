@@ -1,7 +1,7 @@
 require('dotenv').config();
 var nodemailer = require('nodemailer');
 
-exports.sendEmail = (token) => {
+exports.sendEmail = (token, email) => {
   var transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
@@ -12,9 +12,9 @@ exports.sendEmail = (token) => {
 
   var mailOptions = {
     from: process.env.EMAIL,
-    to: 'adhyformerz@gmail.com',
-    subject: 'Sending Email using Node.js',
-    html: `Click this link to activate your account <a href="http://localhost:8080/auth/login?token=${token}">
+    to: email,
+    subject: 'Lalavent email confirmation',
+    html: `Click this link to activate your account <a href="http://localhost:8080/login?token=${token}">
     Activate Account</a>`
   };
 
