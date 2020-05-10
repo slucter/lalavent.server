@@ -1,5 +1,6 @@
 const Tickets = require('../models').ticket;
 const Events = require('../models').event;
+const Users = require('../models').user;
 const { ErrorHandler } = require('../helper/error');
 
 exports.addTicket = (req, res, next) => {
@@ -7,6 +8,8 @@ exports.addTicket = (req, res, next) => {
     .create({
       price: req.body.price,
       event_id: req.body.event_id,
+      user_id: req.body.user_id,
+      status: 0
     })
     .then(data => {
       res.status(201).send({
@@ -24,6 +27,7 @@ exports.getAllTickets = (req, res, next) => {
     exclude: ["createdAt", "updatedAt"],
     include: [
       { model: Events, as: "event", attributes: ["title", "date", "location", "time_start", "time_end", "image"] },
+      { model: Users, as: "user", attributes: ["name", "email"] },
     ]
   })
     .then(data => {
@@ -60,11 +64,50 @@ exports.getTicketById = async (req, res, next) => {
           exclude: ["createdAt", "updatedAt"],
           include: [
             { model: Events, as: "event", attributes: ["title", "date", "location", "time_start", "time_end", "image"] },
+            { model: Users, as: "user", attributes: ["name", "email"] },
           ]
         })
         .then(data => {
           res.status(200).send({
             ticket: data
+          });
+        });
+    }
+  } catch(error) {
+    next(error);
+  }
+};
+
+exports.getTicketsByEvent = async (req, res, next) => {
+  const eventId = req.params.eventId;
+
+  try {
+    const ticket = await Tickets.findOne({
+      where: {
+        event_id: ticketId
+      }
+    });
+    if (!ticket) {
+      res.status(200).send({
+        message: 'ticket not found!',
+        event_id: 0
+      });
+    }
+    else {
+      Tickets
+        .findOne({
+          where: {
+            event_id: eventId
+          },
+          exclude: ["createdAt", "updatedAt"],
+          include: [
+            { model: Events, as: "event", attributes: ["title", "date", "location", "time_start", "time_end", "image"] },
+            { model: Users, as: "user", attributes: ["name", "email"] },
+          ]
+        })
+        .then(data => {
+          res.status(200).send({
+            tickets: data
           });
         });
     }
@@ -89,6 +132,8 @@ exports.updateTicket = (req, res, next) => {
       .update({
         price: req.body.price,
         event_id: req.body.event_id,
+        user_id: req.body.user_id,
+        status: req.body.status
       },
       {
         where: {

@@ -4,6 +4,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { ErrorHandler } = require('../helper/error');
 const sendEmail = require('../helper/sendEmail');
+const { Op } = require('sequelize')
 
 exports.signUp = (req, res, next) => {
   const salt = bcrypt.genSaltSync(10);
@@ -16,7 +17,7 @@ exports.signUp = (req, res, next) => {
       role_id: req.body.role_id || 1,
       address: req.body.address,
       description: req.body.description,
-      status: 0,
+      status: 0
     })
     .then(data => {
       const token = jwt.sign( {id: data.id}, process.env.SECRET_KEY );
@@ -58,7 +59,7 @@ exports.signIn = async (req, res, next) => {
             );
             if (authorized) {
               const status = data.status;
-              if (status == 1) {
+              if (status != 0) {
                 const token = jwt.sign( {
                   id: data.id
                 }, process.env.SECRET_KEY );
@@ -170,9 +171,14 @@ exports.getUserById = async (req, res, next) => {
 
 exports.getUserByRoleId = async (req, res, next) => {
   const roleId = req.params.roleId;
+  const orderByTime = req.query.time;
+  const search = req.query.search;
+  const limit = 10;
+  const page = req.query.page || 1;
+  const offset = (page - 1) * limit;
 
   try {
-    const user = await Users.findOne({
+    const user = await Users.findAndCountAll({
       where: {
         role_id: roleId
       }
@@ -184,24 +190,83 @@ exports.getUserByRoleId = async (req, res, next) => {
       });
     }
     else {
-      Users
-        .findAndCountAll({
+      if (search) {
+        Users.findAndCountAll({
           where: {
-            role_id: roleId
+            role_id: roleId,
+            [Op.or]: [
+              { name: { [Op.substring]: search } },
+              { email: { [Op.substring]: search } }
+            ]
           },
           exclude: ["createdAt", "updatedAt"],
           include: [
             { model: Roles, as: "role", attributes: ["name"] },
           ]
         })
-        .then(data => {
-          const token = jwt.sign({
-            id: data.id
-          }, process.env.SECRET_KEY);
-          res.status(200).send({
-            user: data
+          .then(data => {
+            res.status(200).send({
+              search: search,
+              message: "Search Events",
+              users: data
+            });
+          })
+          .catch(() => {
+            throw new ErrorHandler(500, 'Internal server error');
           });
+      } else if (orderByTime) {
+      Users.findAndCountAll({
+        where: {
+          role_id: roleId
+        },
+        order: [["createdAt", orderByTime]],
+        include: [
+          { model: Roles, as: "role", attributes: ["name"] },
+        ],
+        limit: limit,
+        offset: offset
+      })
+        .then(data => {
+          const pages = Math.ceil(data.count / limit);
+          if (page > pages) {
+            next();
+          } else {
+            res.status(200).send({
+              page: `${page} of ${pages}`,
+              message: "Order Event By Date",
+              users: data
+            });
+          }
+        })
+        .catch(() => {
+          throw new ErrorHandler(500, 'Internal server error');
         });
+      } else {
+        Users
+          .findAndCountAll({
+            where: {
+              role_id: roleId
+            },
+            exclude: ["createdAt", "updatedAt"],
+            include: [
+              { model: Roles, as: "role", attributes: ["name"] },
+            ],
+            limit: limit,
+            offset: offset
+          })
+          .then(data => {
+            const pages = Math.ceil(data.count / limit);
+            if (page > pages) {
+              next();
+            } else {
+              res.status(200).send({
+                page: `${page} of ${pages}`,
+                message: "Order Event By Date",
+                users: data
+              });
+            }
+          });
+      }
     }
   } catch(error) {
     next(error);
@@ -248,6 +313,36 @@ exports.userActivation = (req, res, next) => {
     });
 };
 
+exports.approveUser = (req, res, next) => {
+  const userId = req.params.userId;
+
+  const user = Users.findOne({
+    id: userId
+  });
+  if (!user) {
+    res.status(200).send({
+      message: 'User not found!',
+      id: 0
+    });
+  } else {
+    Users
+      .update({
+        status: req.body.status
+      },
+      {
+        where: {
+          id: userId
+        }
+      })
+      .then(data => {
+        res.status(200).send({
+          message: 'User has been updated!',
+          user: data
+        });
+      });
+  }
+};
+
 exports.updateUser = (req, res, next) => {
   const salt = bcrypt.genSaltSync(10);
   const userId = req.params.userId;
@@ -266,7 +361,7 @@ exports.updateUser = (req, res, next) => {
         name: req.body.name,
         email: req.body.email,
         password: bcrypt.hashSync(req.body.password, salt),
-        image: 'http://192.168.1.97:5000/uploads/default-user.jpg',
+        image: `http://192.168.1.97:5000/uploads/${req.file.filename}` || 'http://192.168.1.97:5000/uploads/default-user.jpg',
         role_id: req.body.role_id,
         address: req.body.address,
         description: req.body.description,
